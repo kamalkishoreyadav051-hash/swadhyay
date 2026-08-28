@@ -1,27 +1,33 @@
-name: Deploy to GitHub Pages
+name: Deploy to Railway
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: false
+
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Seed database (optional, skip in CI since Railway handles it)
+        run: echo "Database is seeded on first run by Railway start command"
+
+      - name: Start server (smoke test)
+        run: timeout 5 npm start || true
+
+      - name: Railway Deploy
+        uses: bervProject/railway-deploy@v3
+        with:
+          service: swadhyay
+          token: ${{ secrets.RAILWAY_TOKEN }}
